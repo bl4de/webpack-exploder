@@ -53,7 +53,7 @@
     <script>
       sourceMap.SourceMapConsumer.initialize({
         "lib/mappings.wasm":
-          "https://unpkg.com/source-map@latest/lib/mappings.wasm"
+          "https://unpkg.com/source-map@latest/lib/mappings.wasm",
       });
     </script>
     <script src="https://unpkg.com/jszip@latest/dist/jszip.min.js"></script>
@@ -196,9 +196,9 @@
         mapFiles = [...files];
         previewName = mapFiles[0].name;
         if (files.length > 1) {
-          previewName += ` & ${files.length - 1} others`
+          previewName += ` & ${files.length - 1} others`;
         }
-        document.getElementById("map-file-name").textContent = previewName
+        document.getElementById("map-file-name").textContent = previewName;
         if (mapFiles !== null) {
           document
             .getElementById("explode-button")
@@ -213,9 +213,7 @@
       function resetProgress() {
         document.getElementById("explode-button").style.display =
           "inline-block";
-        document
-          .getElementById("explode-button")
-          .classList.add("is-disabled");
+        document.getElementById("explode-button").classList.add("is-disabled");
         document.getElementById("progress-bar").style.display = "none";
         document.getElementById("progress-bar").value = "0";
         document.getElementById("map-file-name").textContent = "";
@@ -231,57 +229,62 @@
               sourceMap.SourceMapConsumer.with(
                 e.target.result,
                 null,
-                async function(consumer) {
-                  resolve(consumer.sources.map((source) => {
-                    const content = consumer.sourceContentFor(source);
-                    return {
-                      "path": source.replace(/^\/|\/$/g, ""),
-                      "source": consumer.sourceContentFor(source)
-                    }
-                  }))
+                async function (consumer) {
+                  resolve(
+                    consumer.sources.map((source) => {
+                      const content = consumer.sourceContentFor(source);
+                      return {
+                        path: source.replace(/^\/|\/$/g, ""),
+                        source: consumer.sourceContentFor(source),
+                      };
+                    })
+                  );
                 }
-              )
+              );
             } catch (err) {
               err.mapFile = mapFile.name;
               reject(err);
             }
-          }
+          };
           reader.readAsText(mapFile);
-        })
+        });
       }
 
       function unpackFiles() {
         if (mapFiles !== null) {
           document.getElementById("explode-button").style.display = "none";
-          document.getElementById("progress-bar").style.display = "inline-block";
-          let unpackedPromises = mapFiles.map(
-            file => unpackFile(file)
-          );
-          Promise.all(unpackedPromises).then((res) => {
-            let zip = new JSZip();
-            for (let file of res.flat()) {
-              zip.file(
-                file["path"],
-                file["source"]
-              );
-            }
-            zip.generateAsync({ type: "blob" }, function updateCallback(metadata) {
-              document.getElementById(
-                "progress-bar"
-              ).value = metadata.percent.toFixed(2);
-            }).then(function(content) {
-              download.download = "output.zip";
-              download.href = URL.createObjectURL(content);
-              download.click();
+          document.getElementById("progress-bar").style.display =
+            "inline-block";
+          let unpackedPromises = mapFiles.map((file) => unpackFile(file));
+          Promise.all(unpackedPromises)
+            .then((res) => {
+              let zip = new JSZip();
+              for (let file of res.flat()) {
+                zip.file(file["path"], file["source"]);
+              }
+              zip
+                .generateAsync(
+                  { type: "blob" },
+                  function updateCallback(metadata) {
+                    document.getElementById("progress-bar").value =
+                      metadata.percent.toFixed(2);
+                  }
+                )
+                .then(function (content) {
+                  download.download = "output.zip";
+                  download.href = URL.createObjectURL(content);
+                  download.click();
+                  resetProgress();
+                });
+            })
+            .catch((err) => {
+              if (err.mapFile != null) {
+                document.getElementById("error-file-name").textContent =
+                  err.mapFile;
+              }
+              document.querySelector("dialog").showModal();
               resetProgress();
             });
-          }).catch((err) => {
-            if (err.mapFile != null) {
-              document.getElementById("error-file-name").textContent = err.mapFile;
-            }
-            document.querySelector("dialog").showModal();
-            resetProgress();
-          })
         }
       }
     </script>
